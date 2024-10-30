@@ -1,19 +1,7 @@
-<?php
+<?php 
+
+require_once "helper.php";
 require_once "../functions.php";
-
-/**
- * Kumpulan fungsi untuk API PHP Native
- * 
- * @author Salman Zulkarnain
- * @since 2024-10-25
- */
-
-function response($data, $code)
-{
-    http_response_code($code);
-    header('Content-Type: application/json');
-    return json_encode($data);
-}
 
 $request_method = $_SERVER['REQUEST_METHOD'];
 

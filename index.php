@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 updateTask();
                 break;
             case 'tambah':
-                $gagal = insertTask();
+                $gagal = addTask();
                 break;
         }
     }

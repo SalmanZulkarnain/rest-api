@@ -1,123 +1,127 @@
-<?php 
+<?php
 
 require 'config.php';
 
-function connect_db() {
-    $db = new mysqli(HOSTNAME, USERNAME, PASSWORD, DATABASE);
+function connect_db()
+{
+    $conn = new mysqli(HOSTNAME, USERNAME, PASSWORD, DATABASE);
 
-    if ($db->connect_error) {
-        die("Koneksi gagal: " . $db->connect_error);
+    if ($conn->connect_error) {
+        die("Koneksi gagal: " . $conn->connect_error);
     }
-    
-    return $db;
+
+    return $conn;
 }
 
-$db = connect_db();
+/**
+ * Fungsi untuk mengambil data list task
+ */
+function get_list_task()
+{
+    $sql_get_all = "SELECT * FROM tasks";
+    $eksekusi = connect_db()->query($sql_get_all);
+    $result = array();
 
-function insertTask()
+    while ($row = $eksekusi->fetch_assoc())
+    {
+        $result[] = $row;
+    }
+
+    return $result;
+}
+
+/**
+ * Fungsi untuk mendebug data
+ */
+function debug($data)
+{
+    echo '<pre>';
+    print_r($data);
+    echo '</pre>';
+}
+
+/**
+ * Fungsi untuk tambah task
+ */
+function add_task()
 {
     $judul = $_POST['judul'];
     $deskripsi = $_POST['deskripsi'];
     $tanggal = $_POST['tanggal'];
+    $status = !empty($_POST['status']) ? $_POST['status'] : 'belum';
+    $user_id = authorized();    
 
-    $sql_tambah = "INSERT INTO tasks (judul, deskripsi, tanggal) VALUES ('$judul', '$deskripsi', '$tanggal')";
+    $sql_tambah = "INSERT INTO tasks (judul, deskripsi, tanggal, status, user_id) VALUES ('$judul', '$deskripsi', '$tanggal', '$status', '$user_id')";
     $eksekusi = connect_db()->query($sql_tambah);
     return $eksekusi;
 }
 
-function viewTask() {
-    global $db;
-    
-    $result = $db->query("SELECT * FROM tasks");
-    $data = [];
-    while($row = $result->fetch_assoc()) {
-        $data[] = $row;
-    }
-
-    return $data;
-}
-
-function doneTask(){
-    global $db;
-
-    if(isset($_GET['done'])) {
-        $status = 'belum';
-        $id = $_GET['done'];
-        
-        if($_GET['status'] == 'belum') {
-            $status = 'sudah';
-        } else {
-            $status = 'belum';
-        }
-        $stmt = $db->prepare("UPDATE tasks SET status = ? WHERE id = ?");
-        $stmt->bind_param('si', $status, $id);
-        
-        if($stmt->execute()) {
-            header('Location: index.php');
-            exit;
-        }
-    }
-}
-
-function get_edit()
+/**
+ * Fungsi untuk pindah url
+ */
+function redirect($file)
 {
-    global $db;
-
-    $edit = $_GET['edit'];
-    $stmt = $db->prepare("SELECT * FROM tasks WHERE id=?");
-    $stmt->bind_param('i', $edit);
-    if($stmt->execute()) {
-        $result = $stmt->get_result();
-        return $result->fetch_assoc();
+    header('Location: '.$file.'');
     }
-}
-function get_delete()
-{
-    global $db;
 
-    $delete = $_GET['delete'];
-    $stmt = $db->prepare("SELECT * FROM tasks WHERE id=?");
-    $stmt->bind_param('i', $delete);
-    if($stmt->execute()) {
-        $result = $stmt->get_result();
-        return $result->fetch_assoc();
-    }
-}
-
-function updateTask() {
-    global $db;
-
-    $gagal = '';
-    if(isset($_POST['id'])) {
-        $id = $_POST['id'];
-        $judul = $_POST['judul'];
-        $deskripsi = $_POST['deskripsi'];
-        $tanggal = $_POST['tanggal'];
-
-        $formattedDate = DateTime::createFromFormat('d/m/Y', $tanggal);
-
-        if ($formattedDate) {
-            $tanggal = $formattedDate->format('Y-m-d');
-        } 
-        
-        if (!empty($judul)) {
-
-            $stmt = $db->prepare("UPDATE tasks SET judul = ?, deskripsi = ?, tanggal = ? WHERE id = ?");
-            $stmt->bind_param('sssi', $judul, $deskripsi, $tanggal, $id);
-            if($stmt->execute()) {
-                header('Location: index.php');
-            } else {
-                $gagal = "Gagal mengupdate data";
-            }
-        }
-    }
-    return $gagal;
-}
-
-function deleteTask()
+/**
+ * Fungsi untuk mengambil data yang mau diedit
+ */
+function get_edit_task()
 {
     $id = $_GET['id'];
-    $sql_delete_task = "DELETE FROM tasks WHERE id='$id'";
-    $eksekusi = connect_db()->query($sql_delete_task);
+    $sql_ambil_edit = "SELECT * FROM tasks WHERE id='$id'";
+    $eksekusi = connect_db()->query($sql_ambil_edit);
+    return $eksekusi->fetch_assoc();
+}
+
+/**
+ * Fungsi untuk mengubah data task
+ */
+function update_task()
+{
+    $id = $_POST['id'];
+    $judul = $_POST['judul'];
+    $deskripsi = $_POST['deskripsi'];
+    $status = $_POST['status'];
+    $tanggal = $_POST['tanggal'];
+
+    $sql_update = "UPDATE tasks SET judul='$judul', deskripsi='$deskripsi', status='$status', tanggal='$tanggal' WHERE id='$id'";
+    $eksekusi = connect_db()->query($sql_update);
     return $eksekusi;
 }
+
+/**
+ * Fungsi untuk hapus data task
+ */
+function delete_task()
+{
+    $id = $_GET['id'];
+    $sql_delete = "DELETE FROM tasks WHERE id='$id'";
+    $eksekusi = connect_db()->query($sql_delete);
+    return $eksekusi;
+}
+
+
+// function doneTask()
+// {
+//     global $conn;
+
+//     if (isset($_GET['done'])) {
+//         $status = 'belum';
+//         $id = $_GET['done'];
+
+//         if ($_GET['status'] == 'belum') {
+//             $status = 'sudah';
+//         } else {
+//             $status = 'belum';
+//         }
+//         $stmt = $conn->prepare("UPDATE tasks SET status = ? WHERE id = ?");
+//         $stmt->bind_param('si', $status, $id);
+
+//         if ($stmt->execute()) {
+//             header('Location: index.php');
+//             exit;
+//         }
+//     }
+// }
